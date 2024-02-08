@@ -62,26 +62,3 @@ function edd_watermark_repeater_callback( $args ) {
 
 	\EDDFileWatermarking\render_watermark_table( $watermarks, $name = 'edd_settings[' . esc_attr( $args['id'] ) . ']' );
 }
-
-/**
- * Sanitize the watermark repeater.
- *
- * @param array  $value The value.
- * @param string $key The key.
- *
- * @return array The sanitized value.
- */
-function sanitize_watermark_repeater_settings( $value, $key ) {
-	if ( ! isset( $value ) ) {
-		return $value;
-	}
-
-	if ( is_array( $value ) && ! empty( $value ) && is_array( $value[0] ) && isset( $value[0]['type'] ) ) {
-		// This is already processed value, must be sanitizing before rendering ?
-		return $value;
-	}
-
-	$value = \EDDFileWatermarking\remap_watermark_repeater_values( $value );
-
-	return \EDDFileWatermarking\sanitize_watermark_repeater( $value );
-}

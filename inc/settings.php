@@ -170,6 +170,29 @@ function sanitize_watermark_repeater( $value ) {
 }
 
 /**
+ * Sanitize the watermark repeater.
+ *
+ * @param array  $value The value.
+ * @param string $key The key.
+ *
+ * @return array The sanitized value.
+ */
+function sanitize_watermark_repeater_settings( $value, $key ) {
+	if ( ! isset( $value ) ) {
+		return $value;
+	}
+
+	if ( is_array( $value ) && ! empty( $value ) && is_array( $value[0] ) && isset( $value[0]['type'] ) ) {
+		// This is already processed value, must be sanitizing before rendering ?
+		return $value;
+	}
+
+	$value = remap_watermark_repeater_values( $value );
+
+	return sanitize_watermark_repeater( $value );
+}
+
+/**
  * Remap the watermark repeater values.
  *
  * @param array $values The values.

@@ -60,7 +60,7 @@ function render_watermark_table( $watermarks, $name = 'watermark_repeater' ) {
 	<div id="edd-watermark-fields">
 		<p>Watermarking allows you to add a unique identifier to the files that are downloaded by your customers. This can be useful for tracking down the source of a leak if your files are shared publicly.</p>
 		<br />
-		<p><strong>Note for content</strong> <?php echo esc_html( __( 'Use `\r\n` for line breaks as well as shortcodes like the following for dynamic data.', 'edd-file-watermarking' ) ); ?></p>
+		<p><strong>Note for content</strong> <?php echo esc_html( __( 'Use `\r\n` for line breaks as well as shortcodes like the following for dynamic data. Important: You cannot currently apply more than one rule to the same file. Only the first is actually applied, the second is ignored.', 'edd-file-watermarking' ) ); ?></p>
 						<ul>
 							<li>{customer_id}</li>
 							<li>{customer_id times=2}</li>

@@ -193,6 +193,9 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 
 		do_action( 'watermark_edd_download', $zip, $zip_args );
 		do_action( "watermark_edd_download_{$plugin_filename}", $zip, $zip_args );
+
+		$zip->close();
+	
 	}
 
 	// Return the new file path to EDD.
@@ -252,6 +255,11 @@ function watermark_zip( $zip, $watermark = [], $args ) {
 	$file_to_modify = $watermark['file'];
 	$content        = parse_watermark_content( $watermark['content'], $args );
 
+	// Necessary var if you want to apply more than one string_replacement rule on the same file
+    	// because getFromName() will return false on subsequent calls after modifying $zip with addFromString() and would not apply the subsequent rule.
+    	// @todo check if the same issue exists for 'append_to_file' case.
+    	static $replaced_file_content;
+
 	// Logic to apply the watermark.
 	switch ( $watermark['type'] ) {
 		case 'add_file':
@@ -259,11 +267,11 @@ function watermark_zip( $zip, $watermark = [], $args ) {
 			break;
 
 		case 'string_replacement':
-			$file_contents = $zip->getFromName( $file_to_modify );
+			$file_contents = empty($replaced_file_content) ? $zip->getFromName( $file_to_modify ) : $replaced_file_content;
 			if ( $file_contents ) {
-				$replaced_contents = str_replace( $watermark['search'], $content, $file_contents );
+				$replaced_file_content = str_replace( $watermark['search'], $content, $file_contents );
 				$zip->deleteName( $file_to_modify );
-				$zip->addFromString( $file_to_modify, $replaced_contents );
+				$zip->addFromString( $file_to_modify, $replaced_file_content );
 			}
 			break;
 

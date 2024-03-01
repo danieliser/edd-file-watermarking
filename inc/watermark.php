@@ -193,6 +193,9 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 
 		do_action( 'watermark_edd_download', $zip, $zip_args );
 		do_action( "watermark_edd_download_{$plugin_filename}", $zip, $zip_args );
+
+		$zip->close();
+	
 	}
 
 	// Return the new file path to EDD.

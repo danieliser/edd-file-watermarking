@@ -177,7 +177,7 @@ function sanitize_watermark_repeater( $value ) {
  *
  * @return array The sanitized value.
  */
-function sanitize_watermark_repeater_settings( $value, $key ) {
+function sanitize_watermark_repeater_settings( $value, $key = null ) {
 	if ( ! isset( $value ) ) {
 		return $value;
 	}
@@ -186,6 +186,8 @@ function sanitize_watermark_repeater_settings( $value, $key ) {
 		// This is already processed value, must be sanitizing before rendering ?
 		return $value;
 	}
+
+	$value = apply_filters( 'edd_settings_sanitize_watermark_repeater', $value, $key );
 
 	$value = remap_watermark_repeater_values( $value );
 

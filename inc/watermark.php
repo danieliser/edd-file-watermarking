@@ -252,8 +252,16 @@ function watermark_zip( $zip, $watermark = [], $args ) {
 		'content' => '',
 	] );
 
+	// Necessary var if you want to apply more than one string_replacement rule on the same file
+	// because getFromName() will return false on subsequent calls after modifying $zip with addFromString() and would not apply the subsequent rule.
+	static $file_contents = [];
+
 	$file_to_modify = $watermark['file'];
 	$content        = parse_watermark_content( $watermark['content'], $args );
+
+	if ( ! isset( $file_contents[ $file_to_modify ] ) ) {
+		$file_contents[ $file_to_modify ] = $zip->getFromName( $file_to_modify );
+	}
 
 	// Logic to apply the watermark.
 	switch ( $watermark['type'] ) {
@@ -262,20 +270,28 @@ function watermark_zip( $zip, $watermark = [], $args ) {
 			break;
 
 		case 'string_replacement':
-			$file_contents = $zip->getFromName( $file_to_modify );
-			if ( $file_contents ) {
-				$replaced_contents = str_replace( $watermark['search'], $content, $file_contents );
-				$zip->deleteName( $file_to_modify );
-				$zip->addFromString( $file_to_modify, $replaced_contents );
+			if ( $file_contents[ $file_to_modify ] ) {
+				$replaced_contents = str_replace( $watermark['search'], $content, $file_contents[ $file_to_modify ] );
+
+				if ( $file_contents[ $file_to_modify ] !== $replaced_contents ) {
+					$zip->deleteName( $file_to_modify );
+					$zip->addFromString( $file_to_modify, $replaced_contents );
+
+					$file_contents[ $file_to_modify ] = $replaced_contents;
+				}
 			}
 			break;
 
 		case 'append_to_file':
-			$file_contents = $zip->getFromName( $file_to_modify );
-			if ( $file_contents ) {
-				$replaced_contents = $file_contents . $content;
-				$zip->deleteName( $file_to_modify );
-				$zip->addFromString( $file_to_modify, $replaced_contents );
+			if ( $file_contents[ $file_to_modify ] ) {
+				$replaced_contents = $file_contents[ $file_to_modify ] . $content;
+
+				if ( $file_contents[ $file_to_modify ] !== $replaced_contents ) {
+					$zip->deleteName( $file_to_modify );
+					$zip->addFromString( $file_to_modify, $replaced_contents );
+
+					$file_contents[ $file_to_modify ] = $replaced_contents;
+				}
 			}
 			break;
 

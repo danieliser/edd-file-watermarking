@@ -182,12 +182,12 @@ function sanitize_watermark_repeater_settings( $value, $key = null ) {
 		return $value;
 	}
 
-	if ( is_array( $value ) && ! empty( $value ) && is_array( $value[0] ) && isset( $value[0]['type'] ) ) {
+	if ( is_array( $value ) && ! empty( $value ) && isset( $value[0] ) && is_array( $value[0] ) && isset( $value[0]['type'] ) ) {
 		// This is already processed value, must be sanitizing before rendering ?
 		return $value;
 	}
 
-	$value = apply_filters( 'edd_settings_sanitize_watermark_repeater', $value, $key );
+	// $value = apply_filters( 'edd_settings_sanitize_watermark_repeater', $value, $key );
 
 	$value = remap_watermark_repeater_values( $value );
 

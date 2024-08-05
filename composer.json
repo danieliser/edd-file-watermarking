@@ -1,6 +1,6 @@
 {
 	"name": "danieliser/edd-file-watermarking",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"license": "GPL-2.0-or-later",
 	"minimum-stability": "dev",
 	"require": {},

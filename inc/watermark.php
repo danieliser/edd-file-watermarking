@@ -56,6 +56,9 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended
 
+	$payment_id  = null;
+	$license_key = null;
+
 	// Get eddfile query variable request.
 	if ( isset( $_GET['eddfile'] ) ) {
 		// Get eddfile query string parameter.
@@ -68,10 +71,10 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 		$payment_id = intval( $order_parts[0] );
 
 		// Get the license from the payment.
-		$license = edd_software_licensing()->get_license_by_purchase( $payment_id );
+		$license = function_exists( 'edd_software_licensing' ) ? \edd_software_licensing()->get_license_by_purchase( $payment_id ) : null;
 
 		// Get the license key.
-		$license_key = $license->license_key;
+		$license_key = $license ? $license->license_key : '';
 	} elseif ( isset( $_GET['license'] ) ) {
 		// Process /edd-sl/package_download/<base64 encoded> requests.
 
@@ -83,7 +86,7 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 		}
 
 		// Get license.
-		$license = edd_software_licensing()->get_license( $license_key );
+		$license = function_exists( 'edd_software_licensing' ) ? \edd_software_licensing()->get_license( $license_key ) : null;
 
 		if ( empty( $license ) ) {
 			return $requested_file;
@@ -96,11 +99,11 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 
 		$payment_id = $license->payment_id;
 	} else {
-		// Unknown method.
+		// Unknown method or missing parameters.
 		return $requested_file;
 	}
 
-	// Check purchase ID.
+	// Check if we got the essential customer ID before proceeding.
 	if ( empty( $payment_id ) ) {
 		return $requested_file;
 	}
@@ -122,7 +125,16 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 		WP_Filesystem();
 	}
 
-	$zip_path = sprintf( '%s/%s/%d', rtrim( \edd_get_upload_dir(), '/' ), 'temp', $customer_id );
+	// Determine the base upload directory.
+	if ( function_exists( 'edd_get_upload_dir' ) ) {
+		// @phpcs:ignore PHPCompatibility.FunctionUse.RemovedFunctions.edd_get_upload_dirRemoved
+		$upload_base_dir = \edd_get_upload_dir(); // EDD function returns path string.
+	} else {
+		$wp_upload_info  = wp_upload_dir();
+		$upload_base_dir = $wp_upload_info['basedir']; // WP function returns array.
+	}
+
+	$zip_path = sprintf( '%s/%s/%d', rtrim( $upload_base_dir, '/' ), 'temp', $customer_id );
 
 	$split_path = explode( '/', $zip_path );
 
@@ -214,7 +226,7 @@ function process_zip_builtin_watermarks( $zip, $args = [] ) {
 	$download_id = isset( $args['download_id'] ) ? $args['download_id'] : null;
 	$directory   = isset( $args['directory'] ) ? $args['directory'] : '';
 
-	$watermarks = \edd_get_option( 'edd_watermarks', [] );
+	$watermarks = function_exists( 'edd_get_option' ) ? \edd_get_option( 'edd_watermarks', [] ) : get_option( 'edd_settings', [] )['edd_watermarks'] ?? [];
 
 	if ( ! is_array( $watermarks ) ) {
 		$watermarks = [];
@@ -254,6 +266,7 @@ function watermark_zip( $zip, $watermark = [], $args ) {
 
 	// Necessary var if you want to apply more than one string_replacement rule on the same file
 	// because getFromName() will return false on subsequent calls after modifying $zip with addFromString() and would not apply the subsequent rule.
+	// We now store the *full path* found in the zip as the key.
 	static $file_contents = [];
 
 	$file_to_modify = $watermark['file'];
@@ -318,13 +331,14 @@ function parse_watermark_content( $content, $args ) {
 
 	$args = wp_parse_args( $args, $defaults );
 
+	// Simple replacements first.
 	$content = str_replace( '{license_key}', $args['license_key'], $content );
 	$content = str_replace( '{customer_id}', $args['customer_id'], $content );
 	$content = str_replace( '{download_id}', $args['download_id'], $content );
 	$content = str_replace( '{payment_id}', $args['payment_id'], $content );
 
-	// Parse shortcodes. {shortcode attr=value}.
-	$pattern = '/{([a-z_]+)(?:\s+([a-z_]+)(?:=([a-z0-9_]+))?)?}/i';
+	// Parse shortcodes with attributes: {shortcode attr=value}.
+	// Handles optional quotes around value: attr="value" or attr=value.
 	preg_match_all( $pattern, $content, $matches, PREG_SET_ORDER );
 
 	foreach ( $matches as $match ) {

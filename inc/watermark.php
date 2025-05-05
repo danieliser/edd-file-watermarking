@@ -443,7 +443,8 @@ function parse_watermark_content( $content, $args ) {
 	}
 
 	// Parse \r\n to PHP_EOL.
-	$content = str_replace( '\\r\\n', PHP_EOL, $content );
+	$content = str_replace( [ '\r\n', '\\r\\n' ], PHP_EOL, $content );
+	$content = str_replace( [ '\n', '\\n',  '\r', '\\r' ], PHP_EOL, $content );
 
 	return $content;
 }

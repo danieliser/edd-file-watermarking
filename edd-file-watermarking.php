@@ -3,7 +3,7 @@
  * Plugin Name: EDD File Watermarking
  * Description: Adds an identifier to downloaded EDD files to track which customer downloaded it. Thanks @westguard!
  * Plugin URI: https://danieliser.com/downloads/edd-file-watermarking/
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Daniel Iser
  * Author URI: https://danieliser.com/
  * GitHub Plugin URI: https://github.com/danieliser/edd-file-watermarking

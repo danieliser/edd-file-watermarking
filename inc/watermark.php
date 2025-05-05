@@ -187,6 +187,7 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 
 		// --- Start: Detect base path ---
 		$base_path = '';
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$num_files = $zip->numFiles;
 
 		if ( $num_files > 0 ) {
@@ -209,6 +210,8 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 		}
 		// --- End: Detect base path ---
 
+		// phpcs:disable Squiz.Commenting.InlineComment.InvalidEndChar
+
 		// Get the expected directory name from the requested file.
 		// $expected_directory = basename( $requested_file, '.zip' ) . '/'; // No longer needed
 
@@ -218,10 +221,11 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 		// Determine if the plugin is zipped within the expected directory.
 		// $directory = ( strpos( $first_entry, $expected_directory ) === 0 ) ? $expected_directory : ''; // No longer needed
 
+		// phpcs:enable Squiz.Commenting.InlineComment.InvalidEndChar
 		$zip_args = [
 			'license_key'    => isset( $license_key ) ? $license_key : '',
 			'requested_file' => $requested_file,
-			'base_path'      => $base_path, // Add the detected base path
+			'base_path'      => $base_path, // Add the detected base path.
 			'customer_id'    => $customer_id,
 			'download_id'    => $download_id,
 			'payment_id'     => $payment_id,
@@ -311,6 +315,7 @@ function watermark_zip( $zip, $watermark = [], $args ) {
 		$full_path_in_zip = reset( $found_keys ); // Get the first matching key.
 	} else {
 		// Search for the file in the zip using the target relative path.
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 			$filename_in_zip = $zip->getNameIndex( $i );
 			// Check if the filename in the zip matches the target relative path exactly.

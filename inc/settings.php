@@ -177,7 +177,7 @@ function sanitize_watermark_repeater( $value ) {
  *
  * @return array The sanitized value.
  */
-function sanitize_watermark_repeater_settings( $value, $key = null ) {
+function sanitize_watermark_repeater_settings( $value, $key = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 	if ( ! isset( $value ) ) {
 		return $value;
 	}
@@ -187,6 +187,7 @@ function sanitize_watermark_repeater_settings( $value, $key = null ) {
 		return $value;
 	}
 
+	// phpcs:ignore Squiz.PHP.CommentedOutCode.Found
 	// $value = apply_filters( 'edd_settings_sanitize_watermark_repeater', $value, $key );
 
 	$value = remap_watermark_repeater_values( $value );

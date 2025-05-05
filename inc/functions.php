@@ -4,9 +4,15 @@
  *
  * @package EDDFileWatermarking
  * @subpackage Functions
- * @since 1.0
+ * @since      1.0
  */
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// Include required files.
 require_once __DIR__ . '/cleanup.php';
 require_once __DIR__ . '/globals.php';
 require_once __DIR__ . '/post.php';

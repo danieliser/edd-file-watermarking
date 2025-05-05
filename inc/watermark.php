@@ -339,13 +339,19 @@ function parse_watermark_content( $content, $args ) {
 
 	// Parse shortcodes with attributes: {shortcode attr=value}.
 	// Handles optional quotes around value: attr="value" or attr=value.
+$pattern = '/{([a-z_]+)(?:\s+([a-z_]+)(?:=([a-z0-9_]+))?)?}/i';
 	preg_match_all( $pattern, $content, $matches, PREG_SET_ORDER );
 
 	foreach ( $matches as $match ) {
-		$shortcode = $match[0];
-		$tag       = $match[1];
-		$attribute = $match[2];
-		$value     = $match[3];
+		$shortcode = $match[0]; // The full {shortcode ...} string.
+		$tag       = $match[1]; // The shortcode name (e.g., customer_id).
+		$attribute = isset( $match[2] ) ? $match[2] : null; // The attribute name (e.g., times).
+		$value     = isset( $match[4] ) ? $match[4] : null; // The attribute value (e.g., 2).
+
+		// Skip if this was already handled by simple replacement above and has no attributes.
+		if ( null === $attribute && in_array( $tag, [ 'license_key', 'customer_id', 'download_id', 'payment_id' ], true ) ) {
+			continue;
+		}
 
 		switch ( $tag ) {
 			case 'customer_id':

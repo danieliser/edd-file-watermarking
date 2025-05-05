@@ -351,8 +351,8 @@ function parse_watermark_content( $content, $args ) {
 			case 'customer_id':
 				$customer_id = $args['customer_id'];
 
-				if ( 'times' === $attribute ) {
-					$customer_id = $customer_id * $value;
+				if ( 'times' === $attribute && is_numeric( $value ) ) {
+					$customer_id = $customer_id * intval( $value );
 				}
 
 				$content = str_replace( $shortcode, $customer_id, $content );
@@ -361,7 +361,7 @@ function parse_watermark_content( $content, $args ) {
 			case 'license_key':
 				$license_key = $args['license_key'];
 
-				if ( 'encoded' === $attribute ) {
+				if ( 'encoded' === $attribute && 'base64' === $value ) {
 					// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 					$license_key = base64_encode( $license_key );
 				}
@@ -371,8 +371,8 @@ function parse_watermark_content( $content, $args ) {
 		}
 	}
 
-	// Parse \r\n and \r to PHP_EOL.
-	$content = str_replace( '\r\n', PHP_EOL, $content );
+	// Parse \r\n to PHP_EOL.
+	$content = str_replace( '\\r\\n', PHP_EOL, $content );
 
 	return $content;
 }

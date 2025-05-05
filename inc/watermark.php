@@ -185,19 +185,43 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
 			$download_id = isset( $_GET['download_id'] ) ? absint( $_GET['download_id'] ) : null;
 		}
 
+		// --- Start: Detect base path ---
+		$base_path = '';
+		$num_files = $zip->numFiles;
+
+		if ( $num_files > 0 ) {
+			$first_entry_name = $zip->getNameIndex( 0 );
+			// Check if the first entry is a directory.
+			if ( str_ends_with( $first_entry_name, '/' ) ) {
+				$potential_base_path = $first_entry_name;
+				$is_single_root      = true;
+				// Check if all other entries start with this directory name.
+				for ( $i = 1; $i < $num_files; $i++ ) {
+					if ( ! str_starts_with( $zip->getNameIndex( $i ), $potential_base_path ) ) {
+						$is_single_root = false;
+						break;
+					}
+				}
+				if ( $is_single_root ) {
+					$base_path = $potential_base_path;
+				}
+			}
+		}
+		// --- End: Detect base path ---
+
 		// Get the expected directory name from the requested file.
-		$expected_directory = basename( $requested_file, '.zip' ) . '/';
+		// $expected_directory = basename( $requested_file, '.zip' ) . '/'; // No longer needed
 
 		// Get the name of the first file/folder in the zip.
-		$first_entry = $zip->getNameIndex( 0 );
+		// $first_entry = $zip->getNameIndex( 0 ); // No longer needed
 
 		// Determine if the plugin is zipped within the expected directory.
-		$directory = ( strpos( $first_entry, $expected_directory ) === 0 ) ? $expected_directory : '';
+		// $directory = ( strpos( $first_entry, $expected_directory ) === 0 ) ? $expected_directory : ''; // No longer needed
 
 		$zip_args = [
 			'license_key'    => isset( $license_key ) ? $license_key : '',
 			'requested_file' => $requested_file,
-			'directory'      => $directory,
+			'base_path'      => $base_path, // Add the detected base path
 			'customer_id'    => $customer_id,
 			'download_id'    => $download_id,
 			'payment_id'     => $payment_id,
@@ -224,7 +248,7 @@ function watermark_edd_download( $requested_file, $download_files, $file_key, $a
  */
 function process_zip_builtin_watermarks( $zip, $args = [] ) {
 	$download_id = isset( $args['download_id'] ) ? $args['download_id'] : null;
-	$directory   = isset( $args['directory'] ) ? $args['directory'] : '';
+	$base_path   = isset( $args['base_path'] ) ? $args['base_path'] : ''; // Ensure base_path is available.
 
 	$watermarks = function_exists( 'edd_get_option' ) ? \edd_get_option( 'edd_watermarks', [] ) : get_option( 'edd_settings', [] )['edd_watermarks'] ?? [];
 
@@ -239,10 +263,7 @@ function process_zip_builtin_watermarks( $zip, $args = [] ) {
 	}
 
 	foreach ( $watermarks as $watermark ) {
-		// Set the file with the directory.
-		$watermark['file'] = $directory . $watermark['file'];
-
-		// Add the watermark.
+		// Add the watermark, passing the full args including base_path.
 		watermark_zip( $zip, $watermark, $args );
 	}
 }
@@ -252,7 +273,7 @@ function process_zip_builtin_watermarks( $zip, $args = [] ) {
  *
  * @param \ZipArchive $zip The zip archive.
  * @param array       $watermark The watermark.
- * @param array       $args The args.
+ * @param array       $args The args (contains base_path).
  *
  * @return void
  */
@@ -269,42 +290,86 @@ function watermark_zip( $zip, $watermark = [], $args ) {
 	// We now store the *full path* found in the zip as the key.
 	static $file_contents = [];
 
-	$file_to_modify = $watermark['file'];
-	$content        = parse_watermark_content( $watermark['content'], $args );
+	$target_filename  = $watermark['file']; // This is the filename/path from settings.
+	$content          = parse_watermark_content( $watermark['content'], $args );
+	$base_path        = isset( $args['base_path'] ) ? $args['base_path'] : ''; // Extract base_path.
+	$full_path_in_zip = null;
 
-	if ( ! isset( $file_contents[ $file_to_modify ] ) ) {
-		$file_contents[ $file_to_modify ] = $zip->getFromName( $file_to_modify );
+	// --- Modify logic for finding existing file slightly ---
+	// We need the target relative path *within* the base_path for comparison if base_path exists.
+	$target_relative_path = $base_path . $target_filename;
+
+	// Find the actual full path of the target file within the zip archive.
+	// Avoid searching if we already found/processed this target file.
+	$found_keys = array_filter( array_keys( $file_contents ), function ( $key ) use ( $target_relative_path ) {
+		// Check if the stored full path matches the target relative path exactly.
+		return $key === $target_relative_path;
+	});
+
+	if ( ! empty( $found_keys ) ) {
+		// Already found or processed this file.
+		$full_path_in_zip = reset( $found_keys ); // Get the first matching key.
+	} else {
+		// Search for the file in the zip using the target relative path.
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+			$filename_in_zip = $zip->getNameIndex( $i );
+			// Check if the filename in the zip matches the target relative path exactly.
+			if ( $filename_in_zip === $target_relative_path ) {
+				$full_path_in_zip = $filename_in_zip;
+				break; // Found it.
+			}
+		}
+	}
+	// --- End modification for finding existing file ---
+
+	// If the file wasn't found for replacement/append, full_path_in_zip remains null.
+	// For 'add_file', we don't need to pre-check existence this way.
+
+	// Get original content using the full path (or check cache) *if* found.
+	$original_content = null;
+	if ( $full_path_in_zip && ! isset( $file_contents[ $full_path_in_zip ] ) ) {
+		$original_content = $zip->getFromName( $full_path_in_zip );
+		if ( false === $original_content ) {
+			// Could not read the file content.
+			$file_contents[ $full_path_in_zip ] = false; // Mark as failed.
+		} else {
+			$file_contents[ $full_path_in_zip ] = $original_content;
+		}
+	} elseif ( $full_path_in_zip ) {
+		$original_content = $file_contents[ $full_path_in_zip ];
 	}
 
-	// Logic to apply the watermark.
+	// Logic to apply the watermark (using $full_path_in_zip where appropriate).
 	switch ( $watermark['type'] ) {
 		case 'add_file':
-			$zip->addFromString( $file_to_modify, $content );
+			// Construct the full path using the base_path and target_filename.
+			$full_target_path = $base_path . $target_filename;
+			$zip->addFromString( $full_target_path, $content );
+			// We don't need to cache content for 'add_file' unless we later want to modify it.
 			break;
 
 		case 'string_replacement':
-			if ( $file_contents[ $file_to_modify ] ) {
-				$replaced_contents = str_replace( $watermark['search'], $content, $file_contents[ $file_to_modify ] );
+			if ( $full_path_in_zip && false !== $original_content ) {
+				$replaced_contents = str_replace( $watermark['search'], $content, $original_content );
 
-				if ( $file_contents[ $file_to_modify ] !== $replaced_contents ) {
-					$zip->deleteName( $file_to_modify );
-					$zip->addFromString( $file_to_modify, $replaced_contents );
+				if ( $original_content !== $replaced_contents ) {
+					$zip->deleteName( $full_path_in_zip ); // Delete by full path.
+					$zip->addFromString( $full_path_in_zip, $replaced_contents ); // Add by full path.
 
-					$file_contents[ $file_to_modify ] = $replaced_contents;
+					// Update static cache with full path as key.
+					$file_contents[ $full_path_in_zip ] = $replaced_contents;
 				}
 			}
 			break;
 
 		case 'append_to_file':
-			if ( $file_contents[ $file_to_modify ] ) {
-				$replaced_contents = $file_contents[ $file_to_modify ] . $content;
+			if ( $full_path_in_zip && false !== $original_content ) {
+				$replaced_contents = $original_content . $content;
+				$zip->deleteName( $full_path_in_zip ); // Delete by full path.
+				$zip->addFromString( $full_path_in_zip, $replaced_contents ); // Add by full path.
 
-				if ( $file_contents[ $file_to_modify ] !== $replaced_contents ) {
-					$zip->deleteName( $file_to_modify );
-					$zip->addFromString( $file_to_modify, $replaced_contents );
-
-					$file_contents[ $file_to_modify ] = $replaced_contents;
-				}
+				// Update static cache with full path as key.
+				$file_contents[ $full_path_in_zip ] = $replaced_contents;
 			}
 			break;
 
@@ -339,7 +404,7 @@ function parse_watermark_content( $content, $args ) {
 
 	// Parse shortcodes with attributes: {shortcode attr=value}.
 	// Handles optional quotes around value: attr="value" or attr=value.
-$pattern = '/{([a-z_]+)(?:\s+([a-z_]+)(?:=([a-z0-9_]+))?)?}/i';
+	$pattern = '/{([a-z_]+)(?:\s+([a-z_]+)(?:=([a-z0-9_]+))?)?}/i';
 	preg_match_all( $pattern, $content, $matches, PREG_SET_ORDER );
 
 	foreach ( $matches as $match ) {

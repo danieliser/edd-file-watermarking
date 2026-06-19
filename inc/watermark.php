@@ -281,7 +281,7 @@ function process_zip_builtin_watermarks( $zip, $args = [] ) {
  *
  * @return void
  */
-function watermark_zip( $zip, $watermark = [], $args ) {
+function watermark_zip( $zip, $watermark, $args = [] ) {
 	$watermark = wp_parse_args( $watermark, [
 		'type'    => 'add_file',
 		'file'    => '',

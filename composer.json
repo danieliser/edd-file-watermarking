@@ -1,9 +1,12 @@
 {
   "name": "danieliser/edd-file-watermarking",
+  "description": "Personalize Easy Digital Downloads ZIP files with customer and license watermarks.",
   "license": "GPL-2.0-or-later",
   "minimum-stability": "dev",
+  "prefer-stable": true,
   "type": "wordpress-plugin",
   "require": {
+    "php": ">=7.4",
     "composer/installers": "^1.0 || ^2.0"
   },
   "require-dev": {
@@ -11,16 +14,19 @@
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0.0",
     "phpstan/phpstan": "^2.1.14",
     "szepeviktor/phpstan-wordpress": "v2.0.1",
-    "phpstan/extension-installer": "^1.4.3"
+    "phpstan/extension-installer": "^1.4.3",
+    "phpunit/phpunit": "^9.6"
   },
   "scripts": {
     "format": "vendor/bin/phpcbf --standard=.phpcs.xml.dist --report-summary --report-source",
     "lint": "vendor/bin/phpcs --standard=.phpcs.xml.dist",
-    "phpstan": [
-      "vendor/bin/phpstan analyse --memory-limit=2048M"
-    ]
+    "phpstan": "vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --memory-limit=2048M",
+    "test": "vendor/bin/phpunit"
   },
   "config": {
+    "platform": {
+      "php": "7.4.0"
+    },
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "phpstan/extension-installer": true,

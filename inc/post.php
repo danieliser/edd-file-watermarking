@@ -28,7 +28,7 @@ function edd_watermark_add_meta_box() {
 /**
  * Render the watermark meta box.
  *
- * @param WP_Post $post The post.
+ * @param \WP_Post $post The post.
  *
  * @return void
  */

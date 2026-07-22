@@ -6,6 +6,8 @@
 	<!-- <exclude-pattern type="relative">classes/Installers/*</exclude-pattern> -->
 	<exclude-pattern type="relative">bin/*</exclude-pattern>
 	<exclude-pattern type="relative">vendor/*</exclude-pattern>
+	<exclude-pattern type="relative">tests/bootstrap.php</exclude-pattern>
+	<exclude-pattern type="relative">tests/phpstan-bootstrap.php</exclude-pattern>
 
 	<arg name="extensions" value="php" />
 	<!-- Show progress and sniff codes in all reports -->

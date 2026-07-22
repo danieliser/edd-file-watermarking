@@ -1,0 +1,12 @@
+{
+  "name": "Popup Maker Core Self-Hosted Updates",
+  "description": "Enables self-hosted updates for Popup Maker core plugin from wppopupmaker.com",
+  "watermarks": [
+    {
+      "type": "string_replacement",
+      "file": "popup-maker.php",
+      "search": "defined( 'ABSPATH' ) || exit;",
+      "content": "defined( 'ABSPATH' ) || exit;\n\n// Self-hosted updates - injected by EDD File Watermarking\nadd_action( 'init', function() {\n\t// Check if Extension Updater is available.\n\tif ( ! class_exists( 'PUM_Extension_Updater' ) ) {\n\t\treturn;\n\t}\n\n\t// Get license from core's license service (if available).\n\t$license_key = '';\n\tif ( function_exists( '\\PopupMaker\\plugin' ) ) {\n\t\t$license_service = \\PopupMaker\\plugin( 'license' );\n\t\tif ( $license_service && method_exists( $license_service, 'get_license_key' ) ) {\n\t\t\t$license_key = $license_service->get_license_key();\n\t\t}\n\t}\n\n\t// Initialize updater (license can be empty for core).\n\tnew \\PUM_Extension_Updater(\n\t\t'https://wppopupmaker.com/edd-sl/',\n\t\t__FILE__,\n\t\t[\n\t\t\t'version'   => function_exists( 'popup_maker_config' ) ? popup_maker_config( 'version' ) : '',\n\t\t\t'license'   => $license_key, // Can be empty for core plugin\n\t\t\t'item_name' => 'Popup Maker',\n\t\t\t'item_id'   => 482276, // Core plugin EDD ID\n\t\t\t'author'    => 'Code Atlantic',\n\t\t\t'beta'      => false,\n\t\t]\n\t);\n}, 11 ); // After core loads at 11\n"
+    }
+  ]
+}

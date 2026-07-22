@@ -1,0 +1,12 @@
+parameters:
+	level: 8
+	paths:
+		- edd-file-watermarking.php
+		- inc
+		- tests
+	bootstrapFiles:
+		- tests/phpstan-bootstrap.php
+	excludePaths:
+		analyse:
+			- tests/bootstrap.php
+			- tests/phpstan-bootstrap.php

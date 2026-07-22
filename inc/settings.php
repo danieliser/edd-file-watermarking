@@ -12,9 +12,9 @@ namespace EDDFileWatermarking;
 /**
  * Register the watermark settings section.
  *
- * @param array $sections The sections.
+ * @param array<string,string> $sections The sections.
  *
- * @return array The sections.
+ * @return array<string,string> The sections.
  */
 function edd_watermark_register_settings_section( $sections ) {
 	$sections['watermarking'] = __( 'Watermarking', 'edd-file-watermarking' );
@@ -24,9 +24,9 @@ function edd_watermark_register_settings_section( $sections ) {
 /**
  * Add the watermark settings.
  *
- * @param array $settings The settings.
+ * @param array<string,mixed> $settings The settings.
  *
- * @return array The settings.
+ * @return array<string,mixed> The settings.
  */
 function edd_watermark_add_settings( $settings ) {
 	$watermark_settings = [
@@ -50,12 +50,13 @@ function edd_watermark_add_settings( $settings ) {
 /**
  * Render the watermark repeater.
  *
- * @param array  $watermarks The watermarks.
+ * @param mixed  $watermarks The watermarks.
  * @param string $name The name.
  *
  * @return void
  */
 function render_watermark_table( $watermarks, $name = 'watermark_repeater' ) {
+	$watermarks = is_array( $watermarks ) ? $watermarks : [];
 	?>
 	<div id="edd-watermark-fields">
 		<p>Watermarking allows you to add a unique identifier to the files that are downloaded by your customers. This can be useful for tracking down the source of a leak if your files are shared publicly.</p>
@@ -90,6 +91,14 @@ function render_watermark_table( $watermarks, $name = 'watermark_repeater' ) {
 				
 				<?php if ( ! empty( $watermarks ) ) : ?>
 					<?php foreach ( $watermarks as $watermark ) : ?>
+						<?php
+						$watermark = wp_parse_args( $watermark, [
+							'type'    => '',
+							'file'    => '',
+							'search'  => '',
+							'content' => '',
+						] );
+						?>
 						<tr class="watermark-repeater-row">
 							<td>
 								<select name="<?php echo esc_attr( $name ); ?>[type][]">
@@ -143,9 +152,9 @@ function render_watermark_table( $watermarks, $name = 'watermark_repeater' ) {
 /**
  * Sanitize the watermark repeater.
  *
- * @param array $value The value.
+ * @param array<int,mixed> $value The value.
  *
- * @return array The sanitized value.
+ * @return array<int,array{type:string,file:string,search:string,content:string}> The sanitized value.
  */
 function sanitize_watermark_repeater( $value ) {
 	// Create a new empty array to hold our sanitized settings.
@@ -153,9 +162,15 @@ function sanitize_watermark_repeater( $value ) {
 
 	// Loop through each setting being saved and sanitize it.
 	foreach ( $value as $watermark ) {
+		if ( ! is_array( $watermark ) ) {
+			continue;
+		}
+
 		// Sanitize each field within each repeater row.
+		$type          = isset( $watermark['type'] ) ? sanitize_key( $watermark['type'] ) : '';
+		$allowed_types = [ 'add_file', 'string_replacement', 'append_to_file' ];
 		$new_watermark = [
-			'type'    => isset( $watermark['type'] ) ? sanitize_text_field( $watermark['type'] ) : '',
+			'type'    => in_array( $type, $allowed_types, true ) ? $type : '',
 			'file'    => isset( $watermark['file'] ) ? sanitize_text_field( $watermark['file'] ) : '',
 			'search'  => isset( $watermark['search'] ) ? sanitize_text_field( $watermark['search'] ) : '',
 			'content' => isset( $watermark['content'] ) ? sanitize_textarea_field( $watermark['content'] ) : '',
@@ -172,19 +187,19 @@ function sanitize_watermark_repeater( $value ) {
 /**
  * Sanitize the watermark repeater.
  *
- * @param array  $value The value.
+ * @param mixed  $value The value.
  * @param string $key The key.
  *
- * @return array The sanitized value.
+ * @return array<int,array{type:string,file:string,search:string,content:string}> The sanitized value.
  */
 function sanitize_watermark_repeater_settings( $value, $key = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-	if ( ! isset( $value ) ) {
-		return $value;
+	if ( ! is_array( $value ) || empty( $value ) ) {
+		return [];
 	}
 
-	if ( is_array( $value ) && ! empty( $value ) && isset( $value[0] ) && is_array( $value[0] ) && isset( $value[0]['type'] ) ) {
-		// This is already processed value, must be sanitizing before rendering ?
-		return $value;
+	if ( ! array_key_exists( 'type', $value ) ) {
+		// EDD may pass an already-remapped list; it still needs sanitization.
+		return sanitize_watermark_repeater( $value );
 	}
 
 	// phpcs:ignore Squiz.PHP.CommentedOutCode.Found
@@ -198,20 +213,25 @@ function sanitize_watermark_repeater_settings( $value, $key = null ) { // phpcs:
 /**
  * Remap the watermark repeater values.
  *
- * @param array $values The values.
+ * @param array<string,mixed> $values The values.
  *
- * @return array The remapped values.
+ * @return array<int,array{type:mixed,file:mixed,search:mixed,content:mixed}> The remapped values.
  */
 function remap_watermark_repeater_values( $values ) {
 	$new_values = [];
 
 	// Remap from separate post fields into a single  array of values.
-	foreach ( $values['type'] as $index => $type ) {
+	$types    = isset( $values['type'] ) && is_array( $values['type'] ) ? $values['type'] : [];
+	$files    = isset( $values['file'] ) && is_array( $values['file'] ) ? $values['file'] : [];
+	$searches = isset( $values['search'] ) && is_array( $values['search'] ) ? $values['search'] : [];
+	$contents = isset( $values['content'] ) && is_array( $values['content'] ) ? $values['content'] : [];
+
+	foreach ( $types as $index => $type ) {
 		$new_values[] = [
 			'type'    => $type,
-			'file'    => $values['file'][ $index ],
-			'search'  => $values['search'][ $index ],
-			'content' => $values['content'][ $index ],
+			'file'    => isset( $files[ $index ] ) ? $files[ $index ] : '',
+			'search'  => isset( $searches[ $index ] ) ? $searches[ $index ] : '',
+			'content' => isset( $contents[ $index ] ) ? $contents[ $index ] : '',
 		];
 	}
 

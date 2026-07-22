@@ -14,7 +14,7 @@
  *
  * @since 1.0
  *
- * @param array $args Arguments passed by the setting.
+ * @param array<string,mixed> $args Arguments passed by the setting.
  *
  * @return void
  */
@@ -24,7 +24,7 @@ function edd_textarea_unslashed_callback( $args ) {
 
 	if ( $edd_option ) {
 		if ( is_array( $edd_option ) ) {
-			$value = implode( "\n", maybe_unserialize( $edd_option ) );
+			$value = implode( "\n", $edd_option );
 		} else {
 			$value = $edd_option;
 		}
@@ -53,12 +53,12 @@ function edd_textarea_unslashed_callback( $args ) {
  *
  * @since 1.0
  *
- * @param array $args Arguments passed by the setting.
+ * @param array<string,mixed> $args Arguments passed by the setting.
  *
  * @return void
  */
 function edd_watermark_repeater_callback( $args ) {
 	$watermarks = edd_get_option( $args['id'], [] );
 
-	\EDDFileWatermarking\render_watermark_table( $watermarks, $name = 'edd_settings[' . esc_attr( $args['id'] ) . ']' );
+	\EDDFileWatermarking\render_watermark_table( $watermarks, 'edd_settings[' . esc_attr( $args['id'] ) . ']' );
 }

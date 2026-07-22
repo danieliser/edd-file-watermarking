@@ -149,6 +149,13 @@ class WatermarkZipTest extends TestCase {
 			'customer_id' => 2,
 		] );
 
+		$this->assertTrue( $first_zip->close() );
+		$this->assertTrue( $second_zip->close() );
+
+		// Read committed contents after reopening. Some libzip versions do not
+		// expose a deleted-and-readded entry through getFromName() before close().
+		$first_zip  = $this->open_archive( $first_archive );
+		$second_zip = $this->open_archive( $second_archive );
 		$this->assertSame( 'first customer-1', $first_zip->getFromName( 'plugin/file.txt' ) );
 		$this->assertSame( 'second customer-2', $second_zip->getFromName( 'plugin/file.txt' ) );
 		$this->assertTrue( $first_zip->close() );
